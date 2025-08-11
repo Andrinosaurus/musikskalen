@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Leiterguugi</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root{
+    --bg:#f4fdf4;
+    --card:#fff;
+    --accent:#2e7d32;
+    --muted:#555;
+    --shadow:0 4px 12px rgba(0,0,0,0.08);
+    --mod-bg:#ffdddd;
+  }
+  html,body{
+    margin:0;
+    background:var(--bg);
+    color:#111;
+    font-family:Segoe UI,Roboto,Arial,sans-serif;
+    overflow-x:hidden;
+  }
+  .fade{
+    transition: all 0.4s ease;
+  }
+  .app{
+    max-width:900px;
+    margin:auto;
+    padding:12px;
+    opacity:0;
+    transform:translateX(100%);
+    transition: all 0.7s ease;
+  }
+  header{
+    display:flex;
+    justify-content:center;
+    position:relative;
+    margin-bottom:14px;
+  }
+  .logo{
+    width:80px;
+    height:80px;
+    border-radius:12px;
+    background:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:var(--shadow);
+  }
+  h1{font-size:22px;margin:8px 0 0;text-align:center}
+  .swiss-cross{
+    position:absolute;
+    top:0;
+    right:0;
+    width:40px;
+    height:40px;
+    cursor:pointer;
+  }
+  .topbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:12px;
+    justify-content:center;
+  }
+  button{
+    border:0;
+    padding:8px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    box-shadow:var(--shadow);
+    background:white;
+    transition: all 0.3s ease;
+  }
+  button.primary{background:var(--accent);color:white}
+  .card{
+    background:var(--card);
+    border-radius:12px;
+    box-shadow:var(--shadow);
+    padding:12px;
+    margin-top:12px;
+    transition: all 0.4s ease;
+  }
+  .bigScaleRow{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:flex-start;
+    justify-content:center;
+  }
+  .bigScale{
+    font-size:28px;
+    font-weight:700;
+    text-align:center;
+    flex:1;
+    min-width:160px;
+    transition: all 0.4s ease;
+  }
+  .modBox{
+    background:var(--mod-bg);
+    padding:10px;
+    border-radius:10px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    min-width:140px;
+    transition: all 0.4s ease;
+  }
+  .listArea{margin-top:12px}
+  .scaleItem{
+    padding:8px 10px;
+    border:1px solid #eee;
+    border-radius:8px;
+    margin:4px 0;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    transition: all 0.3s ease;
+  }
+  /* Splash screen */
+  #splash{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:var(--bg);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    z-index:999;
+  }
+  #splash img{
+    width:120px;
+    height:120px;
+    background:white;
+    border-radius:16px;
+    box-shadow:var(--shadow);
+  }
+  #splash h1{
+    margin-top:12px;
+    font-size:26px;
+    color:var(--accent);
+  }
+  /* Animations for swiss cross */
+  @keyframes spin {100%{transform:rotate(360deg);}}
+  @keyframes jump {0%,100%{transform:translateY(0);}50%{transform:translateY(-15px);}}
+  @keyframes fall {0%{transform:translateY(0);}100%{transform:translateY(80px);opacity:0;}}
+  @keyframes reappear {0%{opacity:0;}100%{opacity:1;}}
+  @keyframes roll {100%{transform:rotate(720deg) translateX(50px);}}
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <img src="icon.png" alt="Splash Icon">
+  <h1>Leiterguugi</h1>
+</div>
+
+<div class="app" id="app">
+  <header>
+    <img src="icon.png" alt="App Icon" class="logo">
+    <img src="Icon2.png" alt="Swiss Cross" class="swiss-cross" id="swissCross">
+  </header>
+  <h1>Leiterguugi</h1>
+
+  <div class="topbar">
+    <button id="modToggleBtn">Modulation anzeigen</button>
+    <button id="toggleListBtn">Liste ausblenden</button>
+    <button id="refreshBtn">Refresh (mischen)</button>
+  </div>
+
+  <div class="card">
+    <div class="bigScaleRow">
+      <div id="bigScale" class="bigScale fade">—</div>
+      <div id="modBox" class="modBox fade" style="display:none">
+        <div id="modulationText">—</div>
+        <button id="nextModBtn" class="primary">nächste Modulation</button>
+      </div>
+    </div>
+    <div style="margin-top:8px;display:flex;justify-content:center;gap:8px">
+      <button id="prevBtn">Zurück</button>
+      <button id="nextBtn" class="primary">Nächste</button>
+    </div>
+  </div>
+
+  <div id="listCard" class="card listArea fade">
+    <div style="font-weight:700;margin-bottom:8px">Skalen (zufällige Reihenfolge) — <span id="countSpan"></span> Stück</div>
+    <div id="scaleList"></div>
+  </div>
+</div>
+
+<script>
+const majors = ["Des-Dur","As-Dur","Es-Dur","B-Dur","F-Dur","C-Dur","G-Dur","D-Dur","A-Dur","E-Dur","H-Dur"];
+const minors = ["B-Moll","F-Moll","C-Moll","G-Moll","D-Moll","A-Moll","E-Moll","H-Moll","Fis-Moll","Cis-Moll","Gis-Moll"];
+const minorsHarm = minors.map(m => m+" harmonisch");
+let allScales = [...majors,...minors,...minorsHarm];
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+let shuffled = shuffle([...allScales]);
+let currentIndex = 0;
+let hiddenIndices = new Set();
+
+const scaleListEl=document.getElementById("scaleList");
+const countSpan=document.getElementById("countSpan");
+const bigScaleEl=document.getElementById("bigScale");
+const listCard=document.getElementById("listCard");
+const modBox=document.getElementById("modBox");
+const modText=document.getElementById("modulationText");
+const swissCross=document.getElementById("swissCross");
+
+function renderList(){
+  scaleListEl.innerHTML="";
+  shuffled.forEach((name,i)=>{
+    if(hiddenIndices.has(i)) return;
+    const div=document.createElement("div");
+    div.className="scaleItem fade";
+    div.innerHTML=`<div>${name}</div><div class="muted">#${i+1}</div>`;
+    div.onclick=()=>setBig(i);
+    scaleListEl.appendChild(div);
+  });
+  countSpan.textContent=shuffled.length - hiddenIndices.size;
+}
+
+function setBig(i){
+  if(i<0)i=0;
+  if(i>=shuffled.length)i=shuffled.length-1;
+  currentIndex=i;
+  bigScaleEl.textContent=shuffled[i];
+}
+
+function newMod(){
+  modText.textContent="Modulation "+(Math.floor(Math.random()*3)+1);
+}
+
+function animateSwiss(){
+  const effects=["spin","jump","fall","reappear","roll"];
+  const effect=effects[Math.floor(Math.random()*effects.length)];
+  swissCross.style.animation=effect+" 0.8s ease";
+  setTimeout(()=>{swissCross.style.animation="";},800);
+}
+
+document.getElementById("nextBtn").onclick=()=>{
+  hiddenIndices.add(currentIndex);
+  let next=currentIndex+1;
+  if(next>=shuffled.length)next=0;
+  setBig(next);
+  renderList();
+  animateSwiss();
+};
+document.getElementById("prevBtn").onclick=()=>{
+  let prev=currentIndex-1;
+  if(prev<0)prev=shuffled.length-1;
+  hiddenIndices.delete(prev);
+  setBig(prev);
+  renderList();
+  animateSwiss();
+};
+document.getElementById("refreshBtn").onclick=()=>{
+  shuffled=shuffle([...allScales]);
+  hiddenIndices.clear();
+  setBig(0);
+  renderList();
+  animateSwiss();
+};
+document.getElementById("toggleListBtn").onclick=()=>{
+  listCard.style.display=listCard.style.display==="none"?"":"none";
+  animateSwiss();
+};
+document.getElementById("modToggleBtn").onclick=()=>{
+  modBox.style.display=modBox.style.display==="none"?"flex":"none";
+  animateSwiss();
+};
+document.getElementById("nextModBtn").onclick=()=>{
+  newMod();
+  animateSwiss();
+};
+
+setBig(0);
+renderList();
+newMod();
+
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js");
+}
+
+// Splash screen logic
+setTimeout(()=>{
+  document.getElementById("splash").style.display="none";
+  const app=document.getElementById("app");
+  app.style.opacity=1;
+  app.style.transform="translateX(0)";
+},2000);
+</script>
+</body>
+</html>
